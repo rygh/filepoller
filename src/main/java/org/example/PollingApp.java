@@ -73,6 +73,7 @@ public class PollingApp {
     		this.processor = processor;
     		
     		// NOTE: Using a random UUID makes it harder to discover "lost" files in case of node-failures etc.
+    		//       Using a node-/host-name might be better in some cases to get a consistent name for each instance
     		consumerId = UUID.randomUUID().toString().replaceAll("-", "");
     		working = source.resolve("working");
     		processed = source.resolve("processed");
