@@ -1,6 +1,7 @@
 package org.example;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -34,13 +35,15 @@ public class PollingApp {
     		return System.currentTimeMillis() - last < (timeoutUnit.toMillis(timeoutValue) * 10);
     	}
     	
-    	
     	public Poller(String path, Consumer<Path> processor) {
     		System.out.println("Polling '" + path + "' every " + timeoutValue + " " + timeoutUnit);
+
+    		// NOTE: Using a random UUID makes it harder to discover "lost" files in case of node-failures etc.
+    		//       Using a node-/host-name might be better in some cases to get a consistent name for each instance
+    		String consumerId = UUID.randomUUID().toString().replaceAll("-", "");
     		
     		Path pollPath = Paths.get(path);
-    		
-    		ConcurrentConsumer omnommer = new ConcurrentConsumer(pollPath, processor);
+    		ConcurrentConsumer omnommer = new ConcurrentConsumer(pollPath, consumerId, processor);
     		while (running) {
     			try {
     				Files.list(pollPath)
@@ -69,16 +72,29 @@ public class PollingApp {
     	
     	private Consumer<Path> processor;
     	
-    	public ConcurrentConsumer(Path source, Consumer<Path> processor) {
+    	public ConcurrentConsumer(Path source, String consumerId, Consumer<Path> processor) {
     		this.processor = processor;
-    		
-    		// NOTE: Using a random UUID makes it harder to discover "lost" files in case of node-failures etc.
-    		//       Using a node-/host-name might be better in some cases to get a consistent name for each instance
-    		consumerId = UUID.randomUUID().toString().replaceAll("-", "");
-    		working = source.resolve("working");
-    		processed = source.resolve("processed");
+    		this.consumerId = consumerId;
+
+    		working = createIfNeeded(source.resolve("working"));
+    		processed = createIfNeeded(source.resolve("processed"));
     		
     		System.out.println("Concurrent consumer named " + consumerId + " ready for omnom!");
+    	}
+    	
+    	private Path createIfNeeded(Path path) {
+    		if (Files.exists(path)) {
+    			return path;
+    		}
+    			
+			try {
+				System.out.println("'" + path + "' does not exist, creating it now!");
+				return Files.createDirectory(path);
+			} catch (FileAlreadyExistsException ex) {
+				return path;
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
     	}
     	
 		@Override
