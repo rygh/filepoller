@@ -50,7 +50,7 @@ public class PollingApp {
 	    				.filter(Files::isRegularFile)
 	    				.forEach(omnommer);
     				
-    				last = System.currentTimeMillis();
+    				last = System.currentTimeMillis(); 
     				timeoutUnit.sleep(timeoutValue);
     				
     			} catch (InterruptedException e) {
