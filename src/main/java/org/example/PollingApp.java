@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -45,8 +46,8 @@ public class PollingApp {
     		Path pollPath = Paths.get(path);
     		ConcurrentConsumer omnommer = new ConcurrentConsumer(pollPath, consumerId, processor);
     		while (running) {
-    			try {
-    				Files.list(pollPath)
+    			try (Stream<Path> candidates = Files.list(pollPath)) {
+    				candidates
 	    				.filter(Files::isRegularFile)
 	    				.forEach(omnommer);
     				
